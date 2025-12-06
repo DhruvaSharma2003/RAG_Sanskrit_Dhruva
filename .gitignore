@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.venv/
-code/artifacts/
-HF_HOME/
-.cache/
-report/*.pdf
