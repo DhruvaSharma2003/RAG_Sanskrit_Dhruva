@@ -7,7 +7,7 @@ from loader import load_corpus
 from preprocessing import build_corpus_chunks
 from embedder import Embedder, save_embeddings, load_embeddings
 from retriever import VectorRetriever, KeywordRetriever, keyword_boost
-from generator import PhiGenerator    # Qwen2.5–1.5B
+from generator import PhiGenerator   # ← Qwen2.5–1.5B inside this class
 
 
 PROCESSED_CHUNKS_PATH = os.path.join("data", "processed", "chunks.json")
@@ -32,13 +32,13 @@ class RAGPipeline:
             self._build_and_save_corpus()
 
         # -----------------------------------------------------------
-        # Step 2: Initialize embedder
+        # Step 2: Embedder
         # -----------------------------------------------------------
         print("✓ Initializing embedder (multilingual-e5-small)...")
         self.embedder = Embedder()
 
         # -----------------------------------------------------------
-        # Step 3: Build retrievers
+        # Step 3: Retrievers
         # -----------------------------------------------------------
         print("✓ Building vector retriever (FAISS)...")
         self.vector_retriever = VectorRetriever(self.embeddings, self.chunks)
@@ -47,7 +47,7 @@ class RAGPipeline:
         self.keyword_retriever = KeywordRetriever(self.chunks)
 
         # -----------------------------------------------------------
-        # Step 4: Initialize Generator
+        # Step 4: LLM Generator
         # -----------------------------------------------------------
         print("✓ Loading Qwen2.5–1.5B Instruct generator (CPU mode)...")
         self.generator = PhiGenerator()
@@ -55,7 +55,7 @@ class RAGPipeline:
         print("🚀 RAG Pipeline Ready.\n")
 
     # -----------------------------------------------------------
-    # File Loading / Saving
+    # Loading / Saving
     # -----------------------------------------------------------
 
     def _load_chunks(self) -> List[Dict]:
@@ -69,7 +69,7 @@ class RAGPipeline:
 
     def _build_and_save_corpus(self):
         """
-        Load raw Sanskrit documents → preprocess → chunk → embed → save.
+        Load raw documents → preprocess → chunk → embed → save
         """
         docs = load_corpus(os.path.join("data", "raw"))
 
@@ -78,7 +78,7 @@ class RAGPipeline:
         self._save_chunks(chunks)
         self.chunks = chunks
 
-        print("→ Embedding chunks (this may take time on first run)...")
+        print("→ Embedding chunks (first time only)...")
         embedder = Embedder()
         embeddings = embedder.embed_chunks(chunks)
 
@@ -86,69 +86,74 @@ class RAGPipeline:
         self.embeddings = embeddings
 
     # -----------------------------------------------------------
-    # Hybrid Retrieval
+    # Hybrid Retrieval (Option A)
     # -----------------------------------------------------------
 
-    def retrieve_context(self, question: str, top_k: int = 3, method: str = "vector"):
+    def retrieve_context(self, question: str, top_k: int = 3, method: str = "hybrid"):
         """
-        HYBRID RETRIEVAL:
-        Vector + Keyword Boost (Sanskrit number/money terms)
+        Hybrid (preferred):
+            keyword_boost + vector search (merged)
+        
+        Legacy:
+            method="vector" or method="keyword"
         """
-        if method == "vector":
 
-            # 1. Vector search
+        # HYBRID = Vector + Keyword Boost merged
+        if method == "hybrid":
+
             q_emb = self.embedder.embed_text(question)
+
+            # 1. Vector retrieval
             vector_results = self.vector_retriever.retrieve(q_emb, top_k=top_k)
 
-            # 2. Keyword boost search
+            # 2. Keyword-boosted retrieval
             keyword_results = keyword_boost(self.chunks, question, top_k=top_k)
 
-            # 3. Merge results: keyword hits first, then vector results
+            # 3. Merge: keyword-boosted comes first
             combined = keyword_results + vector_results
 
-            # 4. Remove duplicates while preserving order
+            # 4. Deduplicate (preserve order)
             seen = set()
             final = []
-            for chunk in combined:
-                if chunk["text"] not in seen:
-                    final.append(chunk)
-                    seen.add(chunk["text"])
+            for item in combined:
+                tid = item["chunk_id"]
+                if tid not in seen:
+                    final.append(item)
+                    seen.add(tid)
 
             return final[:top_k]
 
+        # Vector-only
+        elif method == "vector":
+            q_emb = self.embedder.embed_text(question)
+            return self.vector_retriever.retrieve(q_emb, top_k=top_k)
+
+        # Keyword-only
         elif method == "keyword":
             return self.keyword_retriever.retrieve(question, top_k=top_k)
 
         else:
-            raise ValueError("Method must be 'vector' or 'keyword'.")
+            raise ValueError("method must be 'hybrid', 'vector', or 'keyword'")
 
     # -----------------------------------------------------------
-    # Full RAG Pipeline
+    # Full RAG: retrieve → generate
     # -----------------------------------------------------------
 
-    def answer_query(self, question: str, top_k: int = 3, method: str = "vector"):
-        """
-        End-to-end RAG execution:
-        1. Retrieve context
-        2. Generate LLM answer
-        3. Return both
-        """
+    def answer_query(self, question: str, top_k: int = 3, method: str = "hybrid"):
         retrieved = self.retrieve_context(question, top_k=top_k, method=method)
         answer = self.generator.generate_answer(question, retrieved)
         return answer, retrieved
 
 
 # -----------------------------------------------------------
-# Manual Testing
+# Manual Test
 # -----------------------------------------------------------
-
 if __name__ == "__main__":
     rag = RAGPipeline()
+    q = "भोजराजा कियद् धनं दातुम् उक्तवान् ?"
+    ans, ctx = rag.answer_query(q, top_k=3, method="hybrid")
 
-    question = "भोजराजा कियद् धनं दातुम् उक्तवान् ?"
-    answer, ctx = rag.answer_query(question)
-
-    print("\nANSWER:\n", answer)
+    print("\nANSWER:\n", ans)
     print("\nCONTEXT:")
     for c in ctx:
-        print("-", c["text"][:120], "...")
+        print("-", c["chunk_id"], c["score"], c["text"][:120], "...")
