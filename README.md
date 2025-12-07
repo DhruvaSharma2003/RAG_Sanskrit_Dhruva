@@ -46,19 +46,19 @@ This ensures that the LLM **does not hallucinate** and answers only from provide
 
 ## ⚙️ Installation
 
-### 1️⃣ Clone the repository
+### 1️⃣ Clone the repository - 
 
 git clone https://github.com/DhruvaSharma2003/RAG_Sanskrit_Dhruva.git
 cd RAG_Sanskrit_Dhruva
-2️⃣ Create & activate virtual environment
+2️⃣ Create & activate virtual environment - 
 python -m venv venv
 venv\Scripts\activate
-3️⃣ Install dependencies
-pip install -r requirements.txt
+3️⃣ Install dependencies - 
+pip install -r code\requirements.txt
 🧠 Download the Qwen Model (Required)
 You MUST download the model locally before running the app.
 
-Run inside the project folder:
+Run inside the project folder:- 
 
 hf download Qwen/Qwen2.5-1.5B-Instruct \
     --local-dir models/qwen1.5b \
@@ -66,70 +66,68 @@ hf download Qwen/Qwen2.5-1.5B-Instruct \
 ⚠️ Do NOT upload the model files to GitHub.
 
 🗂 Preparing the Knowledge Base
-Place your Sanskrit files in:
+Place your Sanskrit files in:- 
 
 data/raw/
-Supported formats:
+Supported formats:- 
 
-.docx (recommended — preserves Devanagari correctly)
+.docx (recommended)
 
 .pdf
 
-.txt
+.txt, 
 
-After placing files, delete old processed files:
+After placing files, delete old processed files:- 
 
 data/processed/chunks.json
 data/processed/embeddings.npy
 They will be regenerated automatically.
 
 🚀 Running the App
-Run Streamlit:
+Run Streamlit:- 
 
 python -m streamlit run code/app.py
-Open in browser:
+Open in browser:- 
 
 http://localhost:8501
-You will see:
+You will see:- 
 
-Query input box
+Query input box,
 
-Retrieval method selector
-
-Top-3 retrieved chunks
+Top-K retrieved chunks,
 
 Generated answer from Qwen model
 
-🧪 Example Query
+🧪 Example Query:- 
 
 भोजराज्ञा कियद् धनं कवये दातुम् घोषितवान् ?
-Expected Answer:
+Expected Answer:- 
 
 भोजराज्ञा लक्षरुप्यकाणि दातुम् घोषितवान्।
-🧬 Internal Architecture
+🧬 Internal Architecture:- 
 1. Loader
-Reads DOCX, PDF, TXT
+Reads DOCX, PDF, TXT.
 
-Extracts Unicode Sanskrit text
+Extracts Unicode Sanskrit text.
 
 2. Preprocessor
-Cleans text
+Cleans text.
 
-Splits into chunks (size 256–300 tokens)
+Splits into chunks (size ~500 tokens).
 
 3. Embedder
-Uses intfloat/multilingual-e5-small
+Uses intfloat/multilingual-e5-small.
 
-Generates dense embeddings for each chunk
+Generates dense embeddings for each chunk.
 
 4. Retriever
-FAISS L2 search
+FAISS L2 search.
 
-TF-IDF fallback keyword search
+TF-IDF hybrid keyword search.
 
 5. Generator
-Qwen2.5–1.5B-Instruct
+Qwen2.5–1.5B-Instruct.
 
-Strict “context-only answering” prompt
+Strict “context-only answering” prompt.
 
-Offline CPU inference
+Offline CPU inference.
