@@ -7,7 +7,7 @@ from loader import load_corpus
 from preprocessing import build_corpus_chunks
 from embedder import Embedder, save_embeddings, load_embeddings
 from retriever import VectorRetriever, KeywordRetriever, keyword_boost
-from generator import PhiGenerator   # ← Qwen2.5–1.5B inside this class
+from generator import PhiGenerator   
 
 
 PROCESSED_CHUNKS_PATH = os.path.join("data", "processed", "chunks.json")
@@ -86,7 +86,7 @@ class RAGPipeline:
         self.embeddings = embeddings
 
     # -----------------------------------------------------------
-    # Hybrid Retrieval (Option A)
+    # Hybrid Retrieval 
     # -----------------------------------------------------------
 
     def retrieve_context(self, question: str, top_k: int = 3, method: str = "hybrid"):
@@ -146,7 +146,7 @@ class RAGPipeline:
 
 
 # -----------------------------------------------------------
-# Manual Test
+# Manual Test(For Debugging)
 # -----------------------------------------------------------
 if __name__ == "__main__":
     rag = RAGPipeline()
