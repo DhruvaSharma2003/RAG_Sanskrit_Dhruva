@@ -7,7 +7,7 @@ from loader import load_corpus
 from preprocessing import build_corpus_chunks
 from embedder import Embedder, save_embeddings, load_embeddings
 from retriever import VectorRetriever, KeywordRetriever
-from generator import LlamaGenerator
+from generator import PhiGenerator    # ⬅ UPDATED
 
 
 PROCESSED_CHUNKS_PATH = os.path.join("data", "processed", "chunks.json")
@@ -16,35 +16,46 @@ EMBEDDINGS_PATH = os.path.join("data", "processed", "embeddings.npy")
 
 class RAGPipeline:
     """
-    Full Retrieval-Augmented Generation pipeline for Sanskrit RAG system.
+    Full Retrieval-Augmented Generation pipeline for the Sanskrit RAG system.
     """
 
     def __init__(self):
-        # Step 1: Load or build corpus chunks
+        # -----------------------------------------------------------
+        # Step 1: Load or build corpus chunks + embeddings
+        # -----------------------------------------------------------
         if os.path.exists(PROCESSED_CHUNKS_PATH) and os.path.exists(EMBEDDINGS_PATH):
             print("✓ Loading preprocessed chunks and embeddings...")
             self.chunks = self._load_chunks()
             self.embeddings = load_embeddings(EMBEDDINGS_PATH)
         else:
-            print("⚙ Building chunks & embeddings from raw data...")
+            print("⚙ Building chunks & embeddings from raw Sanskrit documents...")
             self._build_and_save_corpus()
 
+        # -----------------------------------------------------------
         # Step 2: Initialize embedder
+        # -----------------------------------------------------------
+        print("✓ Initializing embedder (multilingual-e5-small)...")
         self.embedder = Embedder()
 
+        # -----------------------------------------------------------
         # Step 3: Build retrievers
+        # -----------------------------------------------------------
         print("✓ Building vector retriever (FAISS)...")
         self.vector_retriever = VectorRetriever(self.embeddings, self.chunks)
 
         print("✓ Building keyword retriever (TF-IDF)...")
         self.keyword_retriever = KeywordRetriever(self.chunks)
 
-        # Step 4: Initialize generator
-        print("✓ Loading LLaMA generator...")
-        self.generator = LlamaGenerator()
+        # -----------------------------------------------------------
+        # Step 4: Initialize Phi-1.5 Generator
+        # -----------------------------------------------------------
+        print("✓ Loading Phi-1.5 generator (CPU mode)...")
+        self.generator = PhiGenerator()
+
+        print("🚀 RAG Pipeline Ready.\n")
 
     # -----------------------------------------------------------
-    # Loading / Saving
+    # File Loading / Saving
     # -----------------------------------------------------------
 
     def _load_chunks(self) -> List[Dict]:
@@ -57,27 +68,30 @@ class RAGPipeline:
             json.dump(chunks, f, ensure_ascii=False, indent=2)
 
     def _build_and_save_corpus(self):
-        # Load raw docs
+        """
+        Load raw Sanskrit documents → preprocess → chunk → embed → save.
+        """
         docs = load_corpus(os.path.join("data", "raw"))
 
-        # Preprocess → chunk
+        print("→ Preprocessing and chunking...")
         chunks = build_corpus_chunks(docs)
         self._save_chunks(chunks)
         self.chunks = chunks
 
-        # Embed chunks
+        print("→ Embedding chunks (this may take time on first run)...")
         embedder = Embedder()
         embeddings = embedder.embed_chunks(chunks)
+
         save_embeddings(embeddings, EMBEDDINGS_PATH)
         self.embeddings = embeddings
 
     # -----------------------------------------------------------
-    # Query Handling
+    # Retrieval
     # -----------------------------------------------------------
 
     def retrieve_context(self, question: str, top_k: int = 3, method: str = "vector"):
         """
-        Returns a list of chunk dicts with 'text', 'score', etc.
+        Retrieve relevant Sanskrit chunks using vector or keyword retriever.
         """
         if method == "vector":
             q_emb = self.embedder.embed_text(question)
@@ -87,22 +101,33 @@ class RAGPipeline:
             return self.keyword_retriever.retrieve(question, top_k=top_k)
 
         else:
-            raise ValueError("Method must be 'vector' or 'keyword'")
+            raise ValueError("Method must be 'vector' or 'keyword'.")
+
+    # -----------------------------------------------------------
+    # Full RAG Pipeline
+    # -----------------------------------------------------------
 
     def answer_query(self, question: str, top_k: int = 3, method: str = "vector"):
         """
-        Full RAG flow: retrieve → generate → return answer + context.
+        End-to-end RAG execution:
+        1. Retrieve context
+        2. Generate LLM answer
+        3. Return both
         """
         retrieved = self.retrieve_context(question, top_k=top_k, method=method)
         answer = self.generator.generate_answer(question, retrieved)
-
         return answer, retrieved
 
 
+# -----------------------------------------------------------
+# Manual Test
+# -----------------------------------------------------------
 if __name__ == "__main__":
     rag = RAGPipeline()
+
     question = "कालीदासः कस्य राज्ञः सभायाम् उपस्थितः आसीत् ?"
     answer, ctx = rag.answer_query(question)
+
     print("\nANSWER:\n", answer)
     print("\nCONTEXT:")
     for c in ctx:
