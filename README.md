@@ -48,7 +48,7 @@ This ensures that the LLM **does not hallucinate** and answers only from provide
 
 ### 1️⃣ Clone the repository
 
-git clone https://github.com/YOUR_USERNAME/RAG_Sanskrit_Dhruva.git
+git clone https://github.com/DhruvaSharma2003/RAG_Sanskrit_Dhruva.git
 cd RAG_Sanskrit_Dhruva
 2️⃣ Create & activate virtual environment
 python -m venv venv
