@@ -4,6 +4,10 @@ from typing import List, Dict
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
+# -----------------------------------------------------------
+# Vector Retriever (FAISS)
+# -----------------------------------------------------------
+
 class VectorRetriever:
     """
     FAISS-based vector retriever using cosine similarity.
@@ -13,7 +17,7 @@ class VectorRetriever:
         self.embeddings = embeddings.astype("float32")
         self.chunks = chunks
 
-        # Build FAISS index (L2 normalized embeddings → use IndexFlatIP)
+        # Build FAISS index using inner product (cosine for normalized vectors)
         dim = embeddings.shape[1]
         self.index = faiss.IndexFlatIP(dim)
         self.index.add(self.embeddings)
@@ -36,6 +40,10 @@ class VectorRetriever:
             })
         return results
 
+
+# -----------------------------------------------------------
+# Keyword Retriever (TF-IDF)
+# -----------------------------------------------------------
 
 class KeywordRetriever:
     """
@@ -63,3 +71,37 @@ class KeywordRetriever:
                 "score": float(scores[idx]),
             })
         return results
+
+
+# -----------------------------------------------------------
+# HYBRID BOOSTER (Sanskrit keyword-based)
+# -----------------------------------------------------------
+
+def keyword_boost(chunks: List[Dict], question: str, top_k: int = 3) -> List[Dict]:
+    """
+    Boost chunks containing important Sanskrit keywords like:
+    'लक्ष', 'धन', 'रूप', 'रूपकाणि', etc.
+    """
+
+    # Sanskrit number & money keywords
+    KEYWORDS = ["लक्ष", "रूप", "धन", "रूपक", "रूपकाणि", "धनम्", "दातुम्"]
+
+    scored = []
+    for ch in chunks:
+        text = ch["text"]
+        score = 0
+
+        # Increase score for every keyword match
+        for kw in KEYWORDS:
+            if kw in text:
+                score += 1
+
+        scored.append((score, ch))
+
+    # Sort: highest keyword score first
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    # Extract top positive matches
+    boosted = [c for s, c in scored if s > 0][:top_k]
+
+    return boosted
