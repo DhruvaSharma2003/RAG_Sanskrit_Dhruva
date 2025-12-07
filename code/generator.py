@@ -2,11 +2,11 @@ import torch
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-# Local Qwen2.5 model path
+
 QWEN_MODEL_PATH = "models/qwen1.5b"
 
 
-class PhiGenerator:   # keeping same class name so pipeline does NOT break
+class PhiGenerator:   
     """
     Wraps a Qwen2.5–1.5B Instruct causal LM for CPU-only generation.
     """
@@ -15,7 +15,7 @@ class PhiGenerator:   # keeping same class name so pipeline does NOT break
         self,
         model_name: str = QWEN_MODEL_PATH,
         device: str = "cpu",
-        max_new_tokens: int = 128,       # reduced for stability
+        max_new_tokens: int = 128,       
         temperature: float = 0.2,
         top_p: float = 0.9,
     ):
@@ -25,7 +25,7 @@ class PhiGenerator:   # keeping same class name so pipeline does NOT break
         self.top_p = top_p
 
         # ----------------------------------------------------------
-        # Load Model + Tokenizer (Qwen requires trust_remote_code=True)
+        # Load Model + Tokenizer
         # ----------------------------------------------------------
         print(f"✓ Loading Qwen model from: {model_name}")
 
@@ -40,7 +40,7 @@ class PhiGenerator:   # keeping same class name so pipeline does NOT break
             trust_remote_code=True
         ).to(self.device)
 
-        # Fix padding (Qwen supports this configuration)
+     
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
@@ -80,13 +80,13 @@ class PhiGenerator:   # keeping same class name so pipeline does NOT break
         self,
         question: str,
         retrieved_chunks: List[Dict],
-        max_context_chunks: int = 1,   # reduced to avoid overflow
+        max_context_chunks: int = 1,   
     ) -> str:
 
         if not retrieved_chunks:
             return "सन्दर्भः उपलब्धः नास्ति । (No relevant context found.)"
 
-        # Use only needed chunks
+        
         contexts = [c["text"] for c in retrieved_chunks[:max_context_chunks]]
         prompt = self._build_prompt(question, contexts)
 
@@ -125,7 +125,7 @@ class PhiGenerator:   # keeping same class name so pipeline does NOT break
 
 
 # -----------------------------------------------------------
-# Manual Test (Optional)
+# Manual Test (For Debugging)
 # -----------------------------------------------------------
 if __name__ == "__main__":
     gen = PhiGenerator()
