@@ -1,6 +1,6 @@
 import os
 from typing import List, Dict
-from docx import Document   # proper DOCX loader (no corruption)
+from docx import Document   
 
 
 # -----------------------------------------------------------
@@ -20,7 +20,7 @@ def load_docx_file(path: str) -> str:
         if line:
             paragraphs.append(line)
 
-    # Join with newline for clean chunking
+   
     return "\n".join(paragraphs)
 
 
@@ -58,7 +58,7 @@ def load_corpus(raw_dir: str = os.path.join("data", "raw")) -> List[Dict]:
         name, ext = os.path.splitext(file_name)
         ext = ext.lower()
 
-        # Supported types
+      
         if ext == ".txt":
             text = load_text_file(path)
 
@@ -69,7 +69,7 @@ def load_corpus(raw_dir: str = os.path.join("data", "raw")) -> List[Dict]:
             print(f"Skipping unsupported file: {file_name}")
             continue
 
-        # Skip empty extractions
+   
         if not text.strip():
             print(f"⚠ Warning: Empty text extracted from {file_name}")
             continue
@@ -85,7 +85,7 @@ def load_corpus(raw_dir: str = os.path.join("data", "raw")) -> List[Dict]:
 
 
 # -----------------------------------------------------------
-# Manual test
+# Manual test(For Debugging)
 # -----------------------------------------------------------
 
 if __name__ == "__main__":
