@@ -17,7 +17,7 @@ def main():
     st.title("📜 Sanskrit Retrieval-Augmented Generation (RAG) System")
     st.write(
         "This system answers questions from Sanskrit texts using a CPU-only "
-        "vector + keyword hybrid RAG pipeline."
+        "Hybrid Retrieval (Vector + Keyword Boost) RAG pipeline."
     )
 
     rag = load_pipeline()
@@ -28,14 +28,11 @@ def main():
     question = st.text_area(
         "Ask a question in Sanskrit or transliterated Sanskrit:",
         height=120,
-        placeholder="उदाहरणम्: कालीदासः कस्य सभायां आसीत् ?",
+        placeholder="उदाहरणम्: भोजराजा कियद् धनं दातुम् उक्तवान् ?",
     )
 
-    retriever_type = st.selectbox(
-        "Select Retrieval Method:",
-        ["vector", "keyword", "hybrid"],  # <-- Added Hybrid Option A
-        index=0,
-    )
+    # Hybrid retrieval is fixed — no dropdown
+    retriever_type = "hybrid"
 
     top_k = st.slider("Number of context chunks to retrieve:", 1, 5, 3)
 
