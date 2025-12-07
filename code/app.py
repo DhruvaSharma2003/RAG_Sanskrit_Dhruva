@@ -8,54 +8,75 @@ def load_pipeline():
 
 
 def main():
-    st.set_page_config(page_title="Sanskrit RAG System", page_icon="📜", layout="wide")
+    st.set_page_config(
+        page_title="Sanskrit RAG System",
+        page_icon="📜",
+        layout="wide"
+    )
 
     st.title("📜 Sanskrit Retrieval-Augmented Generation (RAG) System")
     st.write(
-        "This system answers questions based on Sanskrit texts using a CPU-only "
-        "Retriever + Generator architecture."
+        "This system answers questions from Sanskrit texts using a CPU-only "
+        "vector + keyword hybrid RAG pipeline."
     )
 
-    # Load pipeline only once
     rag = load_pipeline()
 
     st.markdown("---")
 
-    # User input
+    # ----------- INPUT UI -----------
     question = st.text_area(
         "Ask a question in Sanskrit or transliterated Sanskrit:",
         height=120,
-        placeholder="उदाहरणम्: कालीदासः कस्य सभायां आसित् ?",
+        placeholder="उदाहरणम्: कालीदासः कस्य सभायां आसीत् ?",
     )
 
     retriever_type = st.selectbox(
         "Select Retrieval Method:",
-        ["vector", "keyword"],
+        ["vector", "keyword", "hybrid"],  # <-- Added Hybrid Option A
         index=0,
     )
 
-    top_k = st.slider("Number of context chunks:", 1, 5, 3)
+    top_k = st.slider("Number of context chunks to retrieve:", 1, 5, 3)
 
+    # ----------- PROCESSING -----------
     if st.button("Generate Answer", type="primary"):
         if not question.strip():
             st.warning("Please enter a question.")
             return
 
-        with st.spinner("Thinking..."):
-            answer, ctx = rag.answer_query(question, top_k=top_k, method=retriever_type)
+        with st.spinner("Searching context & generating answer..."):
+            answer, retrieved = rag.answer_query(
+                question,
+                top_k=top_k,
+                method=retriever_type,
+            )
 
+        # ----------- ANSWER -----------
         st.markdown("## 🧾 Answer")
         st.write(answer)
 
+        # ----------- CONTEXT -----------
         st.markdown("---")
         st.markdown("## 📚 Retrieved Context")
 
-        for i, chunk in enumerate(ctx, start=1):
-            with st.expander(f"Context {i} (score: {chunk['score']:.4f})"):
-                st.write(chunk["text"])
+        if retrieved:
+            for i, chunk in enumerate(retrieved, 1):
+                score = chunk.get("score", None)
 
+                if score is None:
+                    label = f"Context {i}"
+                else:
+                    label = f"Context {i} (score: {score:.4f})"
+
+                with st.expander(label):
+                    st.write(chunk["text"])
+        else:
+            st.info("No relevant context retrieved.")
+
+    # Footer
     st.markdown("---")
-    st.caption("Developed by Dhruva • Sanskrit RAG Internship Assignment")
+    st.caption("Developed by Dhruva • Sanskrit RAG Project")
 
 
 if __name__ == "__main__":
