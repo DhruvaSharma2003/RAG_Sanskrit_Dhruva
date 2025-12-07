@@ -2,10 +2,7 @@ import torch
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-
-# Change this to the exact LLaMA model you download
-LLAMA_MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
-
+LLAMA_MODEL_NAME = "models/phi-1_5"
 
 class LlamaGenerator:
     """
