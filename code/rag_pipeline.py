@@ -7,7 +7,7 @@ from loader import load_corpus
 from preprocessing import build_corpus_chunks
 from embedder import Embedder, save_embeddings, load_embeddings
 from retriever import VectorRetriever, KeywordRetriever
-from generator import PhiGenerator    # ⬅ UPDATED
+from generator import PhiGenerator    # ✔ same name, but now loads Qwen
 
 
 PROCESSED_CHUNKS_PATH = os.path.join("data", "processed", "chunks.json")
@@ -47,10 +47,10 @@ class RAGPipeline:
         self.keyword_retriever = KeywordRetriever(self.chunks)
 
         # -----------------------------------------------------------
-        # Step 4: Initialize Phi-1.5 Generator
+        # Step 4: Initialize Qwen Generator
         # -----------------------------------------------------------
-        print("✓ Loading Phi-1.5 generator (CPU mode)...")
-        self.generator = PhiGenerator()
+        print("✓ Loading Qwen2.5–1.5B Instruct generator (CPU mode)...")
+        self.generator = PhiGenerator()   # ✔ same class name, now loads Qwen model
 
         print("🚀 RAG Pipeline Ready.\n")
 
@@ -89,7 +89,7 @@ class RAGPipeline:
     # Retrieval
     # -----------------------------------------------------------
 
-    def retrieve_context(self, question: str, top_k: int = 3, method: str = "vector"):
+    def retrieve_context(self, question: str, top_k: int = 1, method: str = "vector"):
         """
         Retrieve relevant Sanskrit chunks using vector or keyword retriever.
         """
@@ -107,7 +107,7 @@ class RAGPipeline:
     # Full RAG Pipeline
     # -----------------------------------------------------------
 
-    def answer_query(self, question: str, top_k: int = 3, method: str = "vector"):
+    def answer_query(self, question: str, top_k: int = 1, method: str = "vector"):
         """
         End-to-end RAG execution:
         1. Retrieve context
@@ -132,3 +132,4 @@ if __name__ == "__main__":
     print("\nCONTEXT:")
     for c in ctx:
         print("-", c["text"][:120], "...")
+
