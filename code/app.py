@@ -31,7 +31,7 @@ def main():
         placeholder="उदाहरणम्: भोजराजा कियद् धनं दातुम् उक्तवान् ?",
     )
 
-    # Hybrid retrieval is fixed — no dropdown
+
     retriever_type = "hybrid"
 
     top_k = st.slider("Number of context chunks to retrieve:", 1, 5, 3)
@@ -71,7 +71,7 @@ def main():
         else:
             st.info("No relevant context retrieved.")
 
-    # Footer
+   
     st.markdown("---")
     st.caption("Developed by Dhruva • Sanskrit RAG Project")
 
