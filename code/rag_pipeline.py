@@ -6,8 +6,8 @@ from typing import List, Dict
 from loader import load_corpus
 from preprocessing import build_corpus_chunks
 from embedder import Embedder, save_embeddings, load_embeddings
-from retriever import VectorRetriever, KeywordRetriever
-from generator import PhiGenerator    # ✔ same name, but now loads Qwen
+from retriever import VectorRetriever, KeywordRetriever, keyword_boost
+from generator import PhiGenerator    # Qwen2.5–1.5B
 
 
 PROCESSED_CHUNKS_PATH = os.path.join("data", "processed", "chunks.json")
@@ -47,10 +47,10 @@ class RAGPipeline:
         self.keyword_retriever = KeywordRetriever(self.chunks)
 
         # -----------------------------------------------------------
-        # Step 4: Initialize Qwen Generator
+        # Step 4: Initialize Generator
         # -----------------------------------------------------------
         print("✓ Loading Qwen2.5–1.5B Instruct generator (CPU mode)...")
-        self.generator = PhiGenerator()   # ✔ same class name, now loads Qwen model
+        self.generator = PhiGenerator()
 
         print("🚀 RAG Pipeline Ready.\n")
 
@@ -86,16 +86,35 @@ class RAGPipeline:
         self.embeddings = embeddings
 
     # -----------------------------------------------------------
-    # Retrieval
+    # Hybrid Retrieval
     # -----------------------------------------------------------
 
-    def retrieve_context(self, question: str, top_k: int = 1, method: str = "vector"):
+    def retrieve_context(self, question: str, top_k: int = 3, method: str = "vector"):
         """
-        Retrieve relevant Sanskrit chunks using vector or keyword retriever.
+        HYBRID RETRIEVAL:
+        Vector + Keyword Boost (Sanskrit number/money terms)
         """
         if method == "vector":
+
+            # 1. Vector search
             q_emb = self.embedder.embed_text(question)
-            return self.vector_retriever.retrieve(q_emb, top_k=top_k)
+            vector_results = self.vector_retriever.retrieve(q_emb, top_k=top_k)
+
+            # 2. Keyword boost search
+            keyword_results = keyword_boost(self.chunks, question, top_k=top_k)
+
+            # 3. Merge results: keyword hits first, then vector results
+            combined = keyword_results + vector_results
+
+            # 4. Remove duplicates while preserving order
+            seen = set()
+            final = []
+            for chunk in combined:
+                if chunk["text"] not in seen:
+                    final.append(chunk)
+                    seen.add(chunk["text"])
+
+            return final[:top_k]
 
         elif method == "keyword":
             return self.keyword_retriever.retrieve(question, top_k=top_k)
@@ -107,7 +126,7 @@ class RAGPipeline:
     # Full RAG Pipeline
     # -----------------------------------------------------------
 
-    def answer_query(self, question: str, top_k: int = 1, method: str = "vector"):
+    def answer_query(self, question: str, top_k: int = 3, method: str = "vector"):
         """
         End-to-end RAG execution:
         1. Retrieve context
@@ -120,16 +139,16 @@ class RAGPipeline:
 
 
 # -----------------------------------------------------------
-# Manual Test
+# Manual Testing
 # -----------------------------------------------------------
+
 if __name__ == "__main__":
     rag = RAGPipeline()
 
-    question = "कालीदासः कस्य राज्ञः सभायाम् उपस्थितः आसीत् ?"
+    question = "भोजराजा कियद् धनं दातुम् उक्तवान् ?"
     answer, ctx = rag.answer_query(question)
 
     print("\nANSWER:\n", answer)
     print("\nCONTEXT:")
     for c in ctx:
         print("-", c["text"][:120], "...")
-
